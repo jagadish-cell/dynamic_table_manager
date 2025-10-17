@@ -34,10 +34,13 @@ interface TableState {
   selectedRows: string[];
 }
 
+// Generate unique IDs for new rows
+const generateId = () => `row-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
 const initialState: TableState = {
   data: [
     {
-      id: '1',
+      id: generateId(),
       name: 'John Doe',
       email: 'john@example.com',
       age: 30,
@@ -46,7 +49,7 @@ const initialState: TableState = {
       location: 'New York'
     },
     {
-      id: '2',
+      id: generateId(),
       name: 'Jane Smith',
       email: 'jane@example.com',
       age: 25,
@@ -55,7 +58,7 @@ const initialState: TableState = {
       location: 'San Francisco'
     },
     {
-      id: '3',
+      id: generateId(),
       name: 'Bob Johnson',
       email: 'bob@example.com',
       age: 35,
@@ -64,7 +67,7 @@ const initialState: TableState = {
       location: 'Chicago'
     },
     {
-      id: '4',
+      id: generateId(),
       name: 'Alice Brown',
       email: 'alice@example.com',
       age: 28,
@@ -92,16 +95,34 @@ const tableSlice = createSlice({
   initialState,
   reducers: {
     setData: (state, action: PayloadAction<TableRow[]>) => {
-      state.data = action.payload;
+      // Ensure all new data has proper IDs
+      const dataWithIds = action.payload.map(row => 
+        row.id ? row : { ...row, id: generateId() }
+      );
+      state.data = dataWithIds;
+    },
+    addRow: (state, action: PayloadAction<Omit<TableRow, 'id'>>) => {
+      const newRow: TableRow = {
+        ...action.payload,
+        id: generateId(),
+      };
+      state.data.push(newRow);
     },
     updateRow: (state, action: PayloadAction<{ id: string; data: Partial<TableRow> }>) => {
       const index = state.data.findIndex(row => row.id === action.payload.id);
       if (index !== -1) {
-        state.data[index] = { ...state.data[index], ...action.payload.data };
+        // Use Object.assign to properly merge the objects without type issues
+        Object.assign(state.data[index], action.payload.data);
       }
     },
     deleteRow: (state, action: PayloadAction<string>) => {
       state.data = state.data.filter(row => row.id !== action.payload);
+      // Also remove from selected rows if it was selected
+      state.selectedRows = state.selectedRows.filter(id => id !== action.payload);
+    },
+    deleteSelectedRows: (state) => {
+      state.data = state.data.filter(row => !state.selectedRows.includes(row.id));
+      state.selectedRows = [];
     },
     setSearchTerm: (state, action: PayloadAction<string>) => {
       state.searchTerm = action.payload;
@@ -119,8 +140,14 @@ const tableSlice = createSlice({
         column.visible = action.payload.visible;
       }
     },
-    addColumn: (state, action: PayloadAction<ColumnConfig>) => {
-      state.columns.push(action.payload);
+    addColumn: (state, action: PayloadAction<{ label: string; visible?: boolean; sortable?: boolean; id?: string }>) => {
+      const newColumn: ColumnConfig = {
+        id: action.payload.id || action.payload.label.toLowerCase().replace(/\s+/g, '_'),
+        label: action.payload.label,
+        visible: action.payload.visible ?? true,
+        sortable: action.payload.sortable ?? true,
+      };
+      state.columns.push(newColumn);
     },
     reorderColumns: (state, action: PayloadAction<ColumnConfig[]>) => {
       state.columns = action.payload;
@@ -128,13 +155,18 @@ const tableSlice = createSlice({
     setSelectedRows: (state, action: PayloadAction<string[]>) => {
       state.selectedRows = action.payload;
     },
+    resetTableState: (state) => {
+      return { ...initialState, data: state.data }; // Keep data but reset other state
+    },
   },
 });
 
 export const {
   setData,
+  addRow,
   updateRow,
   deleteRow,
+  deleteSelectedRows,
   setSearchTerm,
   setSortConfig,
   setPagination,
@@ -142,6 +174,7 @@ export const {
   addColumn,
   reorderColumns,
   setSelectedRows,
+  resetTableState,
 } = tableSlice.actions;
 
 export const selectFilteredSortedData = (state: RootState) => {
@@ -163,6 +196,10 @@ export const selectFilteredSortedData = (state: RootState) => {
   return filteredCopy.sort((a, b) => {
     const aValue = a[sortConfig.key];
     const bValue = b[sortConfig.key];
+    
+    // Handle undefined/null values
+    if (aValue == null) return sortConfig.direction === 'asc' ? -1 : 1;
+    if (bValue == null) return sortConfig.direction === 'asc' ? 1 : -1;
     
     if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
     if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;

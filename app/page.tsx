@@ -1,6 +1,8 @@
 'use client';
 import { Container, CssBaseline, ThemeProvider, createTheme } from '@mui/material';
-import dynamic from 'next/dynamic';
+import DataTable from '../components/DataTable';
+import ImportExport from '../components/ImportExport';
+import StorageDebug from '../components/StorageDebug'; // Add this
 import StoreProvider from './providers';
 import { useState, useEffect } from 'react';
 
@@ -8,17 +10,6 @@ const theme = createTheme({
   palette: {
     mode: 'light',
   },
-});
-
-// Dynamically import components with SSR disabled
-const ImportExport = dynamic(() => import('../components/ImportExport'), { 
-  ssr: false,
-  loading: () => <div style={{ height: '40px', marginBottom: '16px' }}>Loading...</div>
-});
-
-const DataTable = dynamic(() => import('../components/DataTable'), { 
-  ssr: false,
-  loading: () => <div style={{ minHeight: '400px' }}>Loading table...</div>
 });
 
 export default function Home() {
@@ -31,7 +22,7 @@ export default function Home() {
   if (!isClient) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        <div>Loading application...</div>
+        <div>Loading...</div>
       </Container>
     );
   }
@@ -41,6 +32,7 @@ export default function Home() {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <Container maxWidth="lg" sx={{ py: 4 }}>
+          <StorageDebug /> {/* Add this line */}
           <ImportExport />
           <DataTable />
         </Container>

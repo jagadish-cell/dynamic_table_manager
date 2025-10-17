@@ -94,9 +94,12 @@ const DataTable: React.FC = () => {
   };
 
   const handleDeleteSelected = () => {
+  if (confirm(`Are you sure you want to delete ${selectedRows.length} selected rows?`)) {
     selectedRows.forEach(id => dispatch(deleteRow(id)));
-    dispatch(setSelectedRows([]));
-  };
+    // Alternative: Use bulk delete action if you implement it
+    // dispatch(deleteSelectedRows());
+  }
+};
 
   const paginatedData = filteredData.slice(
     pagination.currentPage * pagination.rowsPerPage,
