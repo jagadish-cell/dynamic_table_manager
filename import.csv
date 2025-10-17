@@ -1,0 +1,4 @@
+Name,Email,Age,Role,Department,Location
+Alice Johnson,alice@test.com,29,Designer,Design,Chicago
+Bob Wilson,bob@test.com,35,Engineer,Tech,Remote
+Carol Davis,carol@test.com,42,Manager,Operations,Boston
